@@ -1,8 +1,6 @@
 import time
 import traceback
 
-from exceptiongroup import catch
-
 from chatbot_api import *
 from const import *
 
@@ -51,17 +49,19 @@ def reset_history():
     EE_bot.reset_history(USER_ID)
 
 def get_questions_by_qwenVL():
-    Folder = 'calculate_problems/pics/'
+    #Folder = 'calculate_problems/pics/'
+    Folder = '中考题目/2019-2023计算+概率/pics/'
     file_names = os.listdir(Folder)
-    questions = []
+    file = open('中考题目/2019-2023计算+概率/problems.txt', 'a+', encoding='utf-8')
     for file_name in file_names:
         image_path = Folder + file_name
-        questions += VL_bot.generate_response_with_VL(image_path)
-    with open('calculate_problems/problems.txt', 'w', encoding='utf-8') as f:
+        try:
+            questions = VL_bot.generate_response_with_VL(image_path)
+        except:
+            questions = []
         for question in questions:
-            f.write(question.strip().replace('\n', '').replace('\r', '') + '\n')
-        #f.writelines(questions)
-    return questions
+            file.write(question.strip().replace('\n', '').replace('\r', '') + '\n')
+    file.close()
 
 def get_questions_by_qwenLong(path):
     client = OpenAI(
@@ -86,61 +86,91 @@ def get_and_store_answers_and_attrs():
     number = 0
     with open('calculate_problems/problems.txt', 'r', encoding='utf-8') as f:
         questions = f.readlines()
-    try:
-        for question in questions:
-            number += 1
-            print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-            print(f"问题{number}")
+    for question in questions:
+        number += 1
+        print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        print(f"问题{number}")
 
-            messages = [
-                {'role': 'system', 'content': PROBLEM_SOLVER_PROMPT},
-                {'role': 'user', 'content': question},
-            ]
+        messages = [
+            {'role': 'system', 'content': PROBLEM_SOLVER_PROMPT},
+            {'role': 'user', 'content': question},
+        ]
+        try:
             resp = PS_bot.generate_response('111', messages, 3000)
-            line = question.replace(',', '，').replace('\n', '') + ',' + resp.replace('\n', ' ') + '\n'
-            with open('calculate_problems/answers.txt', 'a+', encoding='utf-8') as f:
-                f.write(line)
-    except:
-        traceback.print_exc()
+            line = question.replace(',', '，').replace('\n', '').replace('\r', '') + ',' + resp.replace('\n', ' ').replace('\r', ' ') + '\n'
+        except:
+            line = question.replace(',', '，').replace('\n', '').replace('\r', '') + ',\n'
+        with open('calculate_problems/answers_r1.txt', 'a+', encoding='utf-8') as f:
+            f.write(line)
 
+def read_attrs_and_interact():
+    with open('calculate_problems/answers.txt', 'r', encoding='utf-8') as f:
+        attrs = f.readlines()
+    number = 894
+    for attr in attrs:
+        number += 1
+        question = attr.split(',')[0]
+        #是否需要answer？
+        answer = attr.split(',')[-1]
+        student_history = [
+            {'role': 'system', 'content': STUPID_MODEL_PROMPT},
+            {'role': 'system', 'content': question}
+        ]
+        teacher_history = [
+            {'role': 'system', 'content': TEACHING_MODEL_PROMPT},
+            {'role': 'user', 'content': question}
+        ]
+
+        print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        print(f"问题{number}")
+
+        file = open(f'calculate_problems/interactions/问题{number}.txt', 'a+', encoding='utf-8')
+        file.write(f'学生：{question}\n')
+        teacher_response = ''
+        while teacher_response.find("问答结束") == -1:
+            #学生与老师交互
+            try:
+                teacher_response = TA_bot.generate_response(USER_ID, teacher_history, 500)
+            except:
+                teacher_response = '问答结束'
+            teacher_history.append({'role': 'assistant', 'content': teacher_response})
+            student_history.append({'role': 'user', 'content': teacher_response})
+            teacher_response = teacher_response.replace('\n', '').replace('\r', '') + '\n'
+            file.write(f'老师：{teacher_response}')
+
+            try:
+                student_response = SS_bot.generate_response(USER_ID, student_history, 500)
+            except:
+                student_response = ''
+            student_history.append({'role': 'assistant', 'content': student_response})
+            teacher_history.append({'role': 'user', 'content': student_response})
+            student_response = student_response.replace('\n', '').replace('\r', '') + '\n'
+            file.write(f'学生：{student_response}')
+
+        '''评判模型-错误定位'''
+        try:
+            response = EE_bot.get_critic_error_locating(USER_ID, teacher_history[1:], 3000, TA_bot).replace('\n', '').replace('\r', '') + '\n'
+        except:
+            response = '\n'
+        file.write(f'错误定位：{response}')
+        '''评判模型-给出建议'''
+        try:
+            response = EE_bot.get_critic_suggestions(USER_ID, teacher_history[1:], 3000, TA_bot).replace('\n', '').replace('\r', '') + '\n'
+        except:
+            response = '\n'
+        file.write(f'给出建议：{response}')
+
+        reset_history()
+        file.close()
 
 if __name__ == '__main__':
     number = 0
-    #image_path = '/test/test.png'
     '''视觉模型-识别题目'''
-    #questions = get_questions_by_qwenVL()
-    #题目已提取到problems.txt
-    get_and_store_answers_and_attrs()
-    # student_history = [
-    #     {'role': 'system', 'content': STUPID_MODEL_PROMPT},
-    #     {'role': 'system', 'content': question}
-    # ]
-    # teacher_history = [
-    #     {'role': 'system', 'content': TEACHING_MODEL_PROMPT},
-    #     {'role': 'user', 'content': question}
-    # ]
-    #
-    # teacher_response = ''
-    # while teacher_response.find("问答结束") == -1:
-    #     #学生与老师交互
-    #     teacher_response = TA_bot.generate_response(USER_ID, teacher_history, 500)
-    #     teacher_history.append({'role': 'assistant', 'content': teacher_response})
-    #     student_history.append({'role': 'user', 'content': teacher_response})
-    #     print("*******************************Teacher*******************************")
-    #     print(teacher_response)
-    #
-    #     student_response = SS_bot.generate_response(USER_ID, student_history, 500)
-    #     student_history.append({'role': 'assistant', 'content': student_response})
-    #     teacher_history.append({'role': 'user', 'content': student_response})
-    #     print("*******************************Student*******************************")
-    #     print(student_response)
-    #
-    # '''评判模型-错误定位'''
-    # response = EE_bot.get_critic_error_locating(USER_ID, teacher_history[1:], 3000, TA_bot)
-    # print("*******************************Critic1*******************************")
-    # print(response)
-    # '''评判模型-给出建议'''
-    # response = EE_bot.get_critic_suggestions(USER_ID, teacher_history[1:], 3000, TA_bot)
-    # print("*******************************Critic2*******************************")
-    # print(response)
-    # reset_history()
+    '''题目已提取到problems.txt'''
+    get_questions_by_qwenVL()
+    '''解题模型，给出题目属性和答案'''
+    '''属性已提取到answers_r1/v3.txt'''
+    #get_and_store_answers_and_attrs()
+    '''老师学生模型交互'''
+    '''结果储存至interactions下'''
+    #read_attrs_and_interact()

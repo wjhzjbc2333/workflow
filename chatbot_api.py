@@ -216,7 +216,7 @@ class Problem_Solver(Bot, metaclass=FlyweightMeta):
     def __str__(self) -> str:
         return 'A mathematician who focuses on solving mathematical problems.'
 
-    def generate_response(self, user_id: str, history: List[Dict[str, str]], max_length: int, model=MODEL_deepseek_v3) -> str:
+    def generate_response(self, user_id: str, history: List[Dict[str, str]], max_length: int, model=MODEL_deepseek_r1) -> str:
         #history = self._prepare_history(user_id, new_messages, self.system_prompt)
         response: str = self._generate_response(history, max_length, model=model)
         response: str = response.replace('```markdown', '').replace('```', '')

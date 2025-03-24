@@ -1,10 +1,13 @@
 #qwen-math最大输入输出都是3072，上下文长度4096
 #qwen-vl-ocr最大输入30000，最大输出4096，上下文长度34096
 #qwen-vl-max最大输入30720，最大输出2048，上下文长度32768
+#qwen-max-latest可用qwen-max-2025-01-25替换
+#推理qwq-plus qwq-plus-latest 效果存疑
 QWEN_API = {
     "API_KEY" : "sk-30b325ff84cd484991a8e7a7777b63eb",
     "BASE_URL" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "MODEL": "qwen-math-plus-latest",
+    #"MODEL": "qwen-math-plus-latest",
+    "MODEL": "qwen-math-plus-2024-09-19",
     "MODEL-72B" : "qwen2.5-math-72b-instruct",
     "MODEL-7B" : "qwen2.5-math-7b-instruct",
     "CRITIC_MODEL": "qwen-max-latest",

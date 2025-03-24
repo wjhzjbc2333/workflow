@@ -8,8 +8,6 @@ import numpy as np
 from prompt import *
 from chatbot_api import *
 
-
-
 # #  读取本地文件，并编码为 BASE64 格式
 # def encode_image(image_path):
 #     with open(image_path, "rb") as image_file:
@@ -216,21 +214,33 @@ from chatbot_api import *
 # resp = PS_bot.generate_response('111', messages, 3000)
 # line = question.replace(',', '，') + ',' + resp.replace('\n', ' ') + '\n'
 # print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-# with open('calculate_problems/answers.txt', 'a+', encoding='utf-8') as f:
+# with open('calculate_problems/answers_v3.txt', 'a+', encoding='utf-8') as f:
 #     f.write(line)
 
-from openai import OpenAI
+# from openai import OpenAI
+#
+# client = OpenAI(
+#     base_url='https://api.siliconflow.cn/v1',
+#     api_key='sk-ytlhumlrgvmwkisiirugbjnsvwztwmdqbwqszghjfumyzrbw'
+# )
+#
+# # 发送带有流式输出的请求
+# completion = client.chat.completions.create(
+#     model="Qwen/QwQ-32B",
+#     messages=[{'content': PROBLEM_SOLVER_PROMPT, 'role': 'system'},
+#               {'content': '计算并化简(2x + 3y)^2  - (2x - 3y)(2x + 3y) - (3y - 2x)^2', 'role': 'user'},
+#               ]
+# )
+# print(completion.choices[0].message.content)
 
-client = OpenAI(
-    base_url='https://api.siliconflow.cn/v1',
-    api_key='sk-ytlhumlrgvmwkisiirugbjnsvwztwmdqbwqszghjfumyzrbw'
-)
-
-# 发送带有流式输出的请求
-completion = client.chat.completions.create(
-    model="Qwen/QwQ-32B",
-    messages=[{'content': PROBLEM_SOLVER_PROMPT, 'role': 'system'},
-              {'content': '计算并化简(2x + 3y)^2  - (2x - 3y)(2x + 3y) - (3y - 2x)^2', 'role': 'user'},
-              ]
-)
-print(completion.choices[0].message.content)
+'''将交互记录里老师的分号变成冒号'''
+path = 'calculate_problems/interactions/'
+files = os.listdir(path)
+for file in files:
+    with open(path + file, 'r', encoding='utf-8') as f:
+        contents = f.readlines()
+    for i in range(len(contents) - 2):
+        if contents[i].find('老师；') != -1:
+            contents[i] = contents[i].replace('老师；', '老师：')
+    with open(path + file, 'w', encoding='utf-8') as f:
+        f.writelines(contents)
